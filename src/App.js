@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
+import Table from './components/Table'
 import './index.css'
 
 const CLIENT_OPTIONS = [
@@ -32,19 +33,26 @@ const App = () => {
   const [selectedYear, setSelectedYear] = useState(YEAR_OPTIONS[0].value);
   const [selectedMonth, setSelectedMonth] = useState(MONTH_OPTIONS[9].value);
   const [data, setData] = useState([]);
-
+  let columns=['Date','ActiveSubscriberCount']
   useEffect(() => {
     const fetchActiveSubscriberCount = async () => {
       let url=`http://${selectedClient}:9000/api/activesubscribercount?year=${selectedYear}&month=${selectedMonth}`
       console.log(url);
-      const response = await axios.get(
-        url
-      );
+      const response = await axios.get(url);
       setData(response.data.data);
     };
 
     fetchActiveSubscriberCount();
   }, [selectedClient, selectedYear, selectedMonth]);
+
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10; // You can adjust the number of items per page
+
+  const totalPages = Math.ceil(data.length / itemsPerPage);
+
+  const handlePageChange = (page) => {
+    setCurrentPage(page);
+  };
 
   return (
     <div>
@@ -82,23 +90,9 @@ const App = () => {
           ))}
         </select>
       </div>
-
-      <table>
-        <thead>
-          <tr>
-            <th>Date</th>
-            <th>Active Subscriber Count</th>
-          </tr>
-        </thead>
-        <tbody>
-          {data.map((item) => (
-            <tr key={item.Date}>
-              <td>{item.Date}</td>
-              <td>{item.ActiveSubscriberCount}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+      
+    <Table data={data} columns={columns} />
+      
     </div>
   );
 };
