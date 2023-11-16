@@ -38,8 +38,8 @@ const YEAR_OPTIONS = [
 ];
 
 const MONTH_OPTIONS = [
-  { value: 1, label: "January" },
-  { value: 2, label: "February" },
+  // { value: 1, label: "January" },
+  // { value: 2, label: "February" },
   { value: 3, label: "March" },
   { value: 4, label: "April" },
   { value: 5, label: "May" },
@@ -64,7 +64,7 @@ function getLabelFromValue(clientOptions, value) {
 const App = () => {
   const [selectedClient, setSelectedClient] = useState(CLIENT_OPTIONS[0].value);
   const [selectedYear, setSelectedYear] = useState(YEAR_OPTIONS[0].value);
-  const [selectedMonth, setSelectedMonth] = useState(MONTH_OPTIONS[9].value);
+  const [selectedMonth, setSelectedMonth] = useState(MONTH_OPTIONS[6].value);
   const [data, setData] = useState([]);
   
   useEffect(()=>{console.log(data)},[data])
