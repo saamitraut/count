@@ -30,6 +30,7 @@ const CLIENT_OPTIONS = [
   { value: "103.24.135.242:8081", label: "BARWALA" },
   { value: "103.48.44.120:8081", label: "MAHI CABLE" },
   { value: "sms.maxdigitaltv.com:8083", label: "MEGA MAX" },
+  { value: "sms.pioneerdigitaltv.in:8080", label: "PIONEER" },
 ];
 
 const YEAR_OPTIONS = [
@@ -77,7 +78,7 @@ const App = () => {
     const fetchActiveSubscriberCount = async () => {
       setError(null); // Reset error before making a new request
 
-      const url = `http://${selectedClient}/api/activesubscribercount?year=${selectedYear}&month=${selectedMonth}`;
+      // const url = `http://${selectedClient}/api/activesubscribercount?year=${selectedYear}&month=${selectedMonth}`;
       // console.log(url);
 
 
