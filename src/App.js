@@ -1,16 +1,14 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
-import Table from './components/Table'
-import './index.css'
+import { saveAs } from 'file-saver';
+import * as XLSX from 'xlsx';
+import Table from './components/Table';
+import './index.css';
+import logo from './planetcast.png';
 
 function getMaxCountWithDate(obj1) {
-  // Sort the object by ActiveSubscriberCount in descending order.
   obj1.sort((a, b) => b.ActiveSubscriberCount - a.ActiveSubscriberCount);
-
-  // Get the max count object.
   const maxCountObj = obj1[0];
-
-  // Return the date and ActiveSubscriberCount of the max count object.
   return {
     Date: maxCountObj.Date,
     ActiveSubscriberCount: maxCountObj.ActiveSubscriberCount,
@@ -18,19 +16,23 @@ function getMaxCountWithDate(obj1) {
 }
 
 const CLIENT_OPTIONS = [
-  { value: "103.168.94.18:9000", label: "ASCSC" },
-  { value: "103.219.0.103:9000", label: "SANGLI" },
-  { value: "49.128.162.154:8080", label: "RSSS" },
-  { value: "103.189.56.47:82", label: "HUBBLI" },
-  { value: "bill.seatvnetwork.com:8081", label: "SEATV" },
-  { value: "103.152.40.82:8081", label: "YAMUNANAGAR" },
-  { value: "103.163.202.8:8081", label: "QUICKVISION" },
-  { value: "103.224.48.116:8081", label: "JGD(KANPUR)" },
-  { value: "117.247.88.180:8080", label: "SCCN SIONI" },
-  { value: "103.24.135.242:8081", label: "BARWALA" },
-  { value: "103.48.44.120:8081", label: "MAHI CABLE" },
-  { value: "sms.maxdigitaltv.com:8083", label: "MEGA MAX" },
-  { value: "sms.pioneerdigitaltv.in:8080", label: "PIONEER" },
+  { value: "103.168.94.18:9000", label: "AURANGABAD SATELLITE CABLE SERVICE CENTRE" },
+  { value: "103.219.0.103:9000", label: "Sangli Media Communication" },
+  { value: "49.128.162.154:8080", label: "Reachnet Media" },
+  { value: "103.189.56.47:82", label: "Balaji cable Network" },
+  { value: "bill.seatvnetwork.com:8081", label: "Sea TV Network Ltd" },
+  { value: "103.152.40.82:8081", label: "Cable Operator Association of Yamuna Nagar N Jagadhri" },
+  { value: "103.163.202.8:8081", label: "Quick Vision" },
+  { value: "103.224.48.116:8081", label: "JGD Infotainment Pvt Ltd" },
+  { value: "117.247.88.180:8080", label: "shri sai cable Network" },
+  { value: "103.24.135.242:8081", label: "Sona Cable Network" },
+  { value: "103.48.44.120:8081", label: "Narnaul Cable services  Pvt Ltd" },
+  { value: "sms.maxdigitaltv.com:8083", label: "Mega Max Tv Pvt Ltd" },
+  { value: "sms.pioneerdigitaltv.in:8080", label: "Pioneer Elabs Limited" },
+  { value: "", label: "Rajmoti" },
+  { value: "", label: "Shanti Cable Network" },
+  { value: "", label: "Deep Cable Network" },
+  { value: "", label: "Raj Cable" },
 ];
 
 const YEAR_OPTIONS = [
@@ -39,8 +41,8 @@ const YEAR_OPTIONS = [
 ];
 
 const MONTH_OPTIONS = [
-  // { value: 1, label: "January" },
-  // { value: 2, label: "February" },
+  { value: 1, label: "January" },
+  { value: 2, label: "February" },
   { value: 3, label: "March" },
   { value: 4, label: "April" },
   { value: 5, label: "May" },
@@ -67,99 +69,86 @@ const App = () => {
   const [selectedYear, setSelectedYear] = useState(YEAR_OPTIONS[0].value);
   const [selectedMonth, setSelectedMonth] = useState(MONTH_OPTIONS[6].value);
   const [data, setData] = useState([]);
-  
-  useEffect(()=>{console.log(data)},[data])
-  
-  let columns = ['client','Date', 'ActiveSubscriberCount'];
-  
   const [error, setError] = useState(null);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    console.log(data);
+  }, [data]);
+
+  const columns = ['Serial No', 'MSO Name', 'Date', 'Highest Active Count'];
 
   useEffect(() => {
     const fetchActiveSubscriberCount = async () => {
-      setError(null); // Reset error before making a new request
+      setError(null);
+      setLoading(true);
 
-      // const url = `http://${selectedClient}/api/activesubscribercount?year=${selectedYear}&month=${selectedMonth}`;
-      // console.log(url);
-
-
-      let urls=[]
-      CLIENT_OPTIONS.forEach(client=>{
-        urls.push(`http://${client.value}/api/activesubscribercount?year=${selectedYear}&month=${selectedMonth}`)
-      })
-
-      // console.log(urls);
-      try {
-        // const response = await axios.get(url);
-        // if (response.data && response.data.data && response.data.data.length === 0) {
-        //   setError("No data available for the selected year and month.");
-        // } else {
-          
-        //   let res=[]; 
-        //   res.push(getMaxCountWithDate(response.data.data));
-        //   console.log(response.data.data); console.log(res);
-
-        //    setData(res);
-
-        // }
-        const axiosInstance = axios.create({
-          // Set the timeout to 10 seconds.
-          timeout: 20000,
-        });
-        const promises = [];
-
-        for (const url of urls) {
-          // Hit the URL using Axios.
-          const promise = axiosInstance.get(url);
-
-          // Add the promise to the promises array.
-          promises.push(promise);
-        }
-        let res=[]; 
-        // Wait for all of the promises to resolve.
-        Promise.all(promises).then((responses) => {
-          // Handle the responses from each URL.
-          for (const response of responses) {
-            console.log(response.config.url);
-
-            // Split the URL on the `://` character.
+      const promises = CLIENT_OPTIONS.map(async (client, index) => {
+        try {
+          if (client.value) {
+            const url = `http://${client.value}/api/activesubscribercount?year=${selectedYear}&month=${selectedMonth}`;
+            const axiosInstance = axios.create({
+              timeout: 20000,
+            });
+            const response = await axiosInstance.get(url);
             const [protocol, host_and_port] = response.config.url.split("://");
-
-            // Split the host and port on the `:` character.
             const [host, rest] = host_and_port.split("/");
-
-            // Return the host and port.
-            console.log(host);
-
             const label = getLabelFromValue(CLIENT_OPTIONS, host);
-
-            console.log(label); // "ASCSC"
-            let data=getMaxCountWithDate(response.data.data)
-            res.push({client:label,...data});
+            const maxCountData = getMaxCountWithDate(response.data.data);
+            return { 'Serial No': index + 1, 'MSO Name': label, Date: maxCountData.Date, 'Highest Active Count': maxCountData.ActiveSubscriberCount };
+          } else {
+            const label = client.label;
+            return { 'Serial No': index + 1, 'MSO Name': label, Date: "-", 'Highest Active Count': 0 };
           }
-        }).then(()=>{
-          setData(res);
-        })
-        
-      } catch (error) {
-        console.log(error);
-        if (error.response && error.response.status === 403) {
-          setError("Access to the requested data is forbidden.");
-        } else {
-          setError("An error occurred while fetching data.");
+        } catch (error) {
+          console.log(`Error fetching data for ${client.label}:`, error);
+          return null;
         }
+      });
+
+      try {
+        const res = await Promise.all(promises);
+        const filteredRes = res.filter((item) => item !== null);
+        setData(filteredRes);
+      } catch (error) {
+        console.log('Error in Promise.all:', error);
+      } finally {
+        setLoading(false);
       }
     };
 
     fetchActiveSubscriberCount();
   }, [selectedClient, selectedYear, selectedMonth]);
 
-  // ... (pagination and UI code remains the same)
+  const exportDataToExcel = () => {
+    if (data.length > 0) {
+      const selectedMonthOption = MONTH_OPTIONS.find(option => option.value === parseInt(selectedMonth, 10));
+
+      if (selectedMonthOption) {
+        const monthLabel = selectedMonthOption.label;
+        const fileName = `highest_count_${monthLabel}_${selectedYear}.xlsx`;
+
+        const ws = XLSX.utils.json_to_sheet(data);
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, "Sheet 1");
+        const excelBuffer = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
+
+        const blob = new Blob([excelBuffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+        saveAs(blob, fileName);
+      } else {
+        console.warn('Selected month not found in MONTH_OPTIONS.');
+      }
+    } else {
+      console.warn('No data to export.');
+    }
+  };
 
   return (
     <div>
+      <img src={logo} alt="Planetcast Logo" style={{ maxWidth: '100%', height: 'auto' }} />
       <h1 style={{ margin: 'auto', width: '50%', padding: '10px' }}>Active Subscriber Count SMS</h1>
 
-      <div style={{ margin: 'auto', width: '50%', padding: '10px' }}>
+      <div style={{ margin: 'auto', width: '50%', padding: '10px', display: 'none' }}>
         <label style={{ color: 'black', fontWeight: 'bold', fontSize: '20px' }}>Client:</label>
         <select
           value={selectedClient}
@@ -175,7 +164,6 @@ const App = () => {
             color: '#000',
             cursor: 'pointer'
           }}>
-
           {CLIENT_OPTIONS.map((option) => (
             <option key={option.value} value={option.value}>
               {option.label}
@@ -225,13 +213,20 @@ const App = () => {
           ))}
         </select>
       </div>
-      
-      {error ? (
-        <p style={{ color: 'red' , textAlign: 'center'}}>{error}</p>
+
+      <div style={{ margin: 'auto', width: '50%', padding: '10px' }}>
+        <button onClick={exportDataToExcel} style={{ fontSize: '1rem', padding: '0.5em 1em', cursor: 'pointer' }}>
+          Export Data to Excel
+        </button>
+      </div>
+
+      {loading ? (
+        <p style={{ textAlign: 'center' }}>Searching data. Please wait...</p>
+      ) : error ? (
+        <p style={{ color: 'red', textAlign: 'center' }}>{error}</p>
       ) : (
         <Table data={data} columns={columns} />
       )}
-	  
     </div>
   );
 };
